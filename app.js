@@ -14,7 +14,7 @@ let watchId = null;
 let grabando = false;
 
 // Configuración de filtros GPS
-const DISTANCIA_MINIMA_PUNTO = 2; // Guardar punto si se movió al menos 2m
+const DISTANCIA_MINIMA_PUNTO = 1; // Guardar punto si se movió al menos 2m
 const MAX_ERROR_GPS = 15;         // Ignorar lecturas con margen de error mayor a 15m
 
 const btnStart = document.getElementById('btn-start');
