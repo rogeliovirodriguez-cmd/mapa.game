@@ -14,22 +14,51 @@ body, html {
 
 #ui-panel {
   position: absolute;
-  top: 10px;
+  top: 15px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px 20px;
   border-radius: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   text-align: center;
+  min-width: 250px;
+}
+
+#ui-panel p {
+  margin: 0 0 10px 0;
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+}
+
+#btn-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
 button {
-  background: #28a745;
-  color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 10px 16px;
   border-radius: 12px;
   font-weight: bold;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+}
+
+#btn-start {
+  background: #28a745;
+}
+
+#btn-stop {
+  background: #dc3545;
+}
+
+button:disabled {
+  background: #ccc !important;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
