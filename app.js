@@ -1,23 +1,29 @@
-// Inicializar mapa centrado por defecto
+// Inicializar mapa
 const map = L.map('map').setView([0, 0], 18);
 
-// Cargar mapa de OpenStreetMap (Gratis)
+// Cargar mapa OpenStreetMap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
 let ruta = [];
-let lineaRastro = L.polyline([], { color: 'red', weight: 4 }).addTo(map);
+let lineaRastro = L.polyline([], { color: '#007bff', weight: 5, smoothFactor: 2.0 }).addTo(map);
 let marcadorUsuario = null;
 let totalArea = 0;
+
+// Configuración de precisión
+const DISTANCIA_MINIMA_PUNTO = 2; // Solo guardar punto si se movió al menos 2 metros
+const DISTANCIA_CIERRE = 6;       // Tolerancia de 6 metros para cerrar el círculo al punto de origen
+const MAX_ERROR_GPS = 15;         // Ignorar lecturas con precisión peor a 15 metros
 
 document.getElementById('btn-gps').addEventListener('click', () => {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(actualizarPosicion, console.error, {
       enableHighAccuracy: true,
-      maximumAge: 1000,
+      maximumAge: 0,
       timeout: 5000
     });
+    document.getElementById('btn-gps').innerText = "Rastreando GPS...";
   } else {
     alert("Tu navegador no soporta GPS");
   }
@@ -26,9 +32,14 @@ document.getElementById('btn-gps').addEventListener('click', () => {
 function actualizarPosicion(pos) {
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
+  const precision = pos.coords.accuracy;
+
+  // 1. FILTRO DE PRECISIÓN: Si el GPS está dando un salto muy impreciso, ignorarlo
+  if (precision > MAX_ERROR_GPS) return;
+
   const nuevaCoord = [lng, lat]; // Turf usa [longitud, latitud]
 
-  // Mover marcador del jugador
+  // Actualizar marcador del jugador en el mapa
   if (!marcadorUsuario) {
     marcadorUsuario = L.marker([lat, lng]).addTo(map);
     map.setView([lat, lng], 18);
@@ -36,18 +47,26 @@ function actualizarPosicion(pos) {
     marcadorUsuario.setLatLng([lat, lng]);
   }
 
+  // 2. FILTRO DE DISTANCIA MÍNIMA: Evitar acumular puntos encimados por ruido del GPS
+  if (ruta.length > 0) {
+    const ultimoPuntoGuardado = turf.point(ruta[ruta.length - 1]);
+    const puntoActual = turf.point(nuevaCoord);
+    const distDesdeUltimo = turf.distance(ultimoPuntoGuardado, puntoActual, { units: 'meters' });
+
+    if (distDesdeUltimo < DISTANCIA_MINIMA_PUNTO) return; // No se ha movido suficiente
+  }
+
   // Agregar al rastro
   ruta.push(nuevaCoord);
   lineaRastro.addLatLng([lat, lng]);
 
-  // Si tenemos suficientes puntos, verificamos si cerró un bucle
-  if (ruta.length > 5) {
+  // 3. DETECCIÓN DE CIERRE DE ÁREA: Comprobar si volvió al origen (primer punto)
+  if (ruta.length > 4) {
     const primerPunto = turf.point(ruta[0]);
-    const ultimoPunto = turf.point(nuevaCoord);
-    const distancia = turf.distance(primerPunto, ultimoPunto, { units: 'meters' });
+    const puntoActual = turf.point(nuevaCoord);
+    const distAlOrigen = turf.distance(primerPunto, puntoActual, { units: 'meters' });
 
-    // Si vuelve al punto de origen (a menos de 5 metros de tolerancia)
-    if (distancia < 5) {
+    if (distAlOrigen <= DISTANCIA_CIERRE) {
       cerrarYConquistarArea();
     }
   }
@@ -56,22 +75,22 @@ function actualizarPosicion(pos) {
 function cerrarYConquistarArea() {
   if (ruta.length < 4) return;
   
-  // Asegurar que la línea se cierre exactamente uniendo el último punto con el primero
+  // Unir el último punto con el primero para cerrar el polígono sin huecos
   ruta.push(ruta[0]); 
   
   const poligono = turf.polygon([ruta]);
   const areaM2 = turf.area(poligono);
   
-  // Pintar el área en el mapa
+  // Pintar el área conquistada
   L.geoJSON(poligono, {
-    style: { color: 'red', fillColor: '#f03', fillOpacity: 0.5 }
+    style: { color: '#28a745', fillColor: '#28a745', fillOpacity: 0.4, weight: 2 }
   }).addTo(map);
 
-  // Actualizar UI
+  // Actualizar interfaz
   totalArea += Math.round(areaM2);
   document.getElementById('area-val').innerText = totalArea;
 
-  // Reiniciar rastro para el siguiente círculo
+  // Reiniciar rastro para el siguiente trazo
   ruta = [];
   lineaRastro.setLatLngs([]);
 }
