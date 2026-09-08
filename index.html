@@ -15,9 +15,13 @@
 </head>
 <body>
   <div id="map"></div>
+  
   <div id="ui-panel">
     <p>Área conquistada: <span id="area-val">0</span> m²</p>
-    <button id="btn-gps">Iniciar Juego / GPS</button>
+    <div id="btn-group">
+      <button id="btn-start">Iniciar Recorrido</button>
+      <button id="btn-stop" disabled>Terminar / Calcular</button>
+    </div>
   </div>
 
   <script src="app.js"></script>
