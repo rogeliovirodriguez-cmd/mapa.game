@@ -17,17 +17,19 @@ const miColor = '#' + Math.floor(Math.random()*16777215).toString(16);
 // ==========================================
 // CONFIGURACIÓN DEL MAPA
 // ==========================================
+const map = L.map('map').setView([0, 0], 17);
+
+// Capa OpenStreetMap con sobre-zoom automático (evita 'Map data not yet available')
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20,           // Permitir al usuario hacer zoom cercano
+  maxNativeZoom: 18,     // Límite de las imágenes reales disponibles (después de 18 sólo agranda la imagen sin dar error)
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Forzar actualización del tamaño por si se redimensiona la pantalla
 setTimeout(() => {
   map.invalidateSize();
 }, 500);
-
-const map = L.map('map').setView([0, 0], 18);
-
-// Opción alternativa: Mapa claro estilo Esri
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-  maxZoom: 19,
-  attribution: 'Tiles © Esri'
-}).addTo(map);
 
 let ruta = [];
 let lineaRastro = L.polyline([], { color: miColor, weight: 5, smoothFactor: 2.0 }).addTo(map);
