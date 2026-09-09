@@ -19,14 +19,14 @@ const miColor = '#' + Math.floor(Math.random()*16777215).toString(16);
 // ==========================================
 const map = L.map('map').setView([0, 0], 17);
 
-// Capa libre en tono oscuro de CartoDB Dark Matter
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  maxZoom: 20,
-  maxNativeZoom: 18,
-  subdomains: 'abcd',
-  attribution: '© OpenStreetMap © CARTO'
+// Capa OpenStreetMap con sobre-zoom automático (evita 'Map data not yet available')
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20,           // Permitir al usuario hacer zoom cercano
+  maxNativeZoom: 18,     // Límite de las imágenes reales disponibles (después de 18 sólo agranda la imagen sin dar error)
+  attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
+// Forzar actualización del tamaño por si se redimensiona la pantalla
 setTimeout(() => {
   map.invalidateSize();
 }, 500);
