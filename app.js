@@ -17,6 +17,10 @@ const miColor = '#' + Math.floor(Math.random()*16777215).toString(16);
 // ==========================================
 // CONFIGURACIÓN DEL MAPA
 // ==========================================
+setTimeout(() => {
+  map.invalidateSize();
+}, 500);
+
 const map = L.map('map').setView([0, 0], 18);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
