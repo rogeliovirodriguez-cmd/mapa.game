@@ -8,6 +8,11 @@ html, body {
   font-family: sans-serif;
 }
 
+/* Aplicar modo oscuro con filtro sobre los mosaicos del mapa */
+.leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+}
+
 #map {
   width: 100vw;
   height: 100vh;
