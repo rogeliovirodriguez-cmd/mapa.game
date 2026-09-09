@@ -23,10 +23,10 @@ setTimeout(() => {
 
 const map = L.map('map').setView([0, 0], 18);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+// Opción alternativa: Mapa claro estilo Esri
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
   maxZoom: 19,
-  subdomains: 'abcd',
-  attribution: '© OpenStreetMap © CARTO'
+  attribution: 'Tiles © Esri'
 }).addTo(map);
 
 let ruta = [];
