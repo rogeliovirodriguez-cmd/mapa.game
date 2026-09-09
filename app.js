@@ -4,9 +4,13 @@
 const SUPABASE_URL = 'https://qmjdiptmzqvkrwdiyqdt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_kdRPXiaT3yUxwav0JYjrBQ_oDkO_QEk';
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabaseClient = null;
+if (typeof supabase !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.includes('TU_PROYECTO')) {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
-// Crear un ID único y un color aleatorio para cada jugador
+// Variables de jugador
+let miNombre = "Jugador";
 const miJugadorId = 'jugador_' + Math.floor(Math.random() * 10000);
 const miColor = '#' + Math.floor(Math.random()*16777215).toString(16);
 
@@ -15,8 +19,10 @@ const miColor = '#' + Math.floor(Math.random()*16777215).toString(16);
 // ==========================================
 const map = L.map('map').setView([0, 0], 18);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  subdomains: 'abcd',
+  attribution: '© OpenStreetMap © CARTO'
 }).addTo(map);
 
 let ruta = [];
@@ -25,63 +31,87 @@ let marcadorUsuario = null;
 let totalArea = 0;
 let grabando = false;
 
-// Almacenar marcadores y trazos de otros jugadores
 const jugadoresRemotos = {};
-
 const DISTANCIA_MINIMA_PUNTO = 2;
 const MAX_ERROR_GPS = 15;
 
 const btnStart = document.getElementById('btn-start');
 const btnStop = document.getElementById('btn-stop');
+const modalNickname = document.getElementById('modal-nickname');
+const inputNickname = document.getElementById('input-nickname');
+const btnJoin = document.getElementById('btn-join');
 
 // ==========================================
-// CANAL DE CANAL TIEMPO REAL (SUPABASE BROADCAST)
+// CAPTURAR NOMBRE DE JUGADOR
 // ==========================================
-const canalJuego = supabaseClient.channel('mapa-multijugador');
-
-// Escuchar posiciones de otros jugadores
-canalJuego.on('broadcast', { event: 'posicion_jugador' }, payload => {
-  const data = payload.payload;
-  if (data.id === miJugadorId) return; // Ignorar mis propios mensajes
-
-  // Si es un jugador nuevo, le creamos su marcador con su color
-  if (!jugadoresRemotos[data.id]) {
-    jugadoresRemotos[data.id] = {
-      marcador: L.circleMarker([data.lat, data.lng], {
-        radius: 8,
-        color: data.color,
-        fillColor: data.color,
-        fillOpacity: 0.9
-      }).addTo(map).bindPopup(data.id)
-    };
-  } else {
-    jugadoresRemotos[data.id].marcador.setLatLng([data.lat, data.lng]);
+btnJoin.addEventListener('click', () => {
+  const nombreInput = inputNickname.value.trim();
+  if (nombreInput !== "") {
+    miNombre = nombreInput;
   }
+  document.getElementById('player-name-display').innerText = miNombre;
+  modalNickname.style.display = 'none';
+
+  iniciarGPS();
+  iniciarMultijugador();
 });
 
-// Escuchar áreas conquistadas por otros jugadores
-canalJuego.on('broadcast', { event: 'area_conquistada' }, payload => {
-  const data = payload.payload;
-  if (data.id === miJugadorId) return;
-
-  L.geoJSON(data.poligono, {
-    style: { color: data.color, fillColor: data.color, fillOpacity: 0.4, weight: 2 }
-  }).addTo(map);
-});
-
-canalJuego.subscribe();
-
 // ==========================================
-// RASTREO GPS Y EVENTOS
+// CANAL TIEMPO REAL (SUPABASE)
 // ==========================================
-if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(actualizarPosicion, console.error, {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 5000
+let canalJuego = null;
+
+function iniciarMultijugador() {
+  if (!supabaseClient) return;
+
+  canalJuego = supabaseClient.channel('mapa-multijugador');
+
+  // Escuchar posiciones remotas
+  canalJuego.on('broadcast', { event: 'posicion_jugador' }, payload => {
+    const data = payload.payload;
+    if (data.id === miJugadorId) return;
+
+    if (!jugadoresRemotos[data.id]) {
+      jugadoresRemotos[data.id] = {
+        marcador: L.circleMarker([data.lat, data.lng], {
+          radius: 8,
+          color: data.color,
+          fillColor: data.color,
+          fillOpacity: 0.9
+        }).addTo(map).bindPopup(`<b>${data.nombre}</b>`)
+      };
+    } else {
+      jugadoresRemotos[data.id].marcador.setLatLng([data.lat, data.lng]);
+      jugadoresRemotos[data.id].marcador.setPopupContent(`<b>${data.nombre}</b>`);
+    }
   });
-} else {
-  alert("Tu navegador no soporta GPS");
+
+  // Escuchar áreas conquistadas remotas
+  canalJuego.on('broadcast', { event: 'area_conquistada' }, payload => {
+    const data = payload.payload;
+    if (data.id === miJugadorId) return;
+
+    L.geoJSON(data.poligono, {
+      style: { color: data.color, fillColor: data.color, fillOpacity: 0.4, weight: 2 }
+    }).addTo(map).bindTooltip(`Área de ${data.nombre}`);
+  });
+
+  canalJuego.subscribe();
+}
+
+// ==========================================
+// RASTREO GPS
+// ==========================================
+function iniciarGPS() {
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(actualizarPosicion, console.error, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5000
+    });
+  } else {
+    alert("Tu navegador no soporta GPS");
+  }
 }
 
 btnStart.addEventListener('click', () => {
@@ -110,20 +140,21 @@ function actualizarPosicion(pos) {
 
   const nuevaCoord = [lng, lat];
 
-  // Mi marcador local
   if (!marcadorUsuario) {
-    marcadorUsuario = L.marker([lat, lng]).addTo(map);
+    marcadorUsuario = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${miNombre} (Tú)</b>`);
     map.setView([lat, lng], 18);
   } else {
     marcadorUsuario.setLatLng([lat, lng]);
   }
 
-  // TRANSMITIR MI POSICIÓN A LOS DEMÁS
-  canalJuego.send({
-    type: 'broadcast',
-    event: 'posicion_jugador',
-    payload: { id: miJugadorId, lat: lat, lng: lng, color: miColor }
-  });
+  // Transmitir posición y apodo
+  if (canalJuego) {
+    canalJuego.send({
+      type: 'broadcast',
+      event: 'posicion_jugador',
+      payload: { id: miJugadorId, nombre: miNombre, lat: lat, lng: lng, color: miColor }
+    });
+  }
 
   if (!grabando) return;
 
@@ -152,17 +183,17 @@ function calcularYConquistarArea() {
     const poligono = turf.polygon([ruta]);
     const areaM2 = turf.area(poligono);
 
-    // Pintar mi área localmente
     L.geoJSON(poligono, {
       style: { color: miColor, fillColor: miColor, fillOpacity: 0.4, weight: 2 }
-    }).addTo(map);
+    }).addTo(map).bindTooltip(`Área de ${miNombre}`);
 
-    // TRANSMITIR MI ÁREA CONQUISTADA A LOS DEMÁS
-    canalJuego.send({
-      type: 'broadcast',
-      event: 'area_conquistada',
-      payload: { id: miJugadorId, poligono: poligono, color: miColor }
-    });
+    if (canalJuego) {
+      canalJuego.send({
+        type: 'broadcast',
+        event: 'area_conquistada',
+        payload: { id: miJugadorId, nombre: miNombre, poligono: poligono, color: miColor }
+      });
+    }
 
     totalArea += Math.round(areaM2);
     document.getElementById('area-val').innerText = totalArea;
