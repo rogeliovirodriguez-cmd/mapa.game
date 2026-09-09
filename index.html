@@ -16,10 +16,20 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- Modal de Nombre de Jugador -->
+  <div id="modal-nickname">
+    <div class="modal-content">
+      <h2>¡Bienvenido al Juego!</h2>
+      <p>Escribe tu nombre o apodo para jugar:</p>
+      <input type="text" id="input-nickname" placeholder="Tu Apodo" maxlength="15" />
+      <button id="btn-join">Entrar al Juego</button>
+    </div>
+  </div>
+
   <div id="map"></div>
   
   <div id="ui-panel">
-    <p>Área conquistada: <span id="area-val">0</span> m²</p>
+    <p><strong id="player-name-display">Jugador</strong>: <span id="area-val">0</span> m²</p>
     <div id="btn-group">
       <button id="btn-start">Iniciar Recorrido</button>
       <button id="btn-stop" disabled>Terminar / Calcular</button>
