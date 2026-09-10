@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Juego de Territorio GPS</title>
+  <title>Conquest GPS</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   
@@ -16,32 +16,86 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Modal de Nombre de Jugador -->
-  <div id="modal-nickname">
-    <div class="modal-content">
-      <h2>¡Bienvenido al Juego!</h2>
-      <p>Escribe tu nombre o apodo para jugar:</p>
-      <input type="text" id="input-nickname" placeholder="Tu Apodo" maxlength="15" />
-      <button id="btn-join">Entrar al Juego</button>
+
+  <!-- PANTALLA DE AUTENTICACIÓN / REGISTRO -->
+  <div id="modal-auth" class="modal-overlay">
+    <div class="auth-card">
+      <div class="brand">
+        <div class="brand-logo">🌐</div>
+        <h2>CONQUEST GPS</h2>
+        <p>Conquista tu ciudad en tiempo real</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tab-login" class="active">Inicia Sesión</button>
+        <button id="tab-register">Regístrate</button>
+      </div>
+
+      <form id="auth-form">
+        <div class="input-group" id="group-nickname" style="display: none;">
+          <label>Apodo / Nickname</label>
+          <input type="text" id="auth-nickname" placeholder="Ej. RunnerX" maxlength="15" />
+        </div>
+
+        <div class="input-group">
+          <label>Correo Electrónico</label>
+          <input type="email" id="auth-email" placeholder="tu@email.com" required />
+        </div>
+
+        <div class="input-group">
+          <label>Contraseña</label>
+          <input type="password" id="auth-password" placeholder="••••••••" required minlength="6" />
+        </div>
+
+        <button type="submit" id="btn-auth-submit" class="btn-primary">Entrar a la Arena</button>
+      </form>
+      <p id="auth-error" class="error-msg"></p>
     </div>
   </div>
 
+  <!-- INTERFAZ DEL JUEGO (HUD) -->
   <div id="map"></div>
-  
-  <div id="ui-panel">
 
-<div id="leaderboard-panel">
-  <h3>🏆 Tabla de Posiciones</h3>
-  <ul id="leaderboard-list">
-    <li class="empty-msg">Sin territorios aún</li>
-  </ul>
-</div>
-    <p><strong id="player-name-display">Jugador</strong>: <span id="area-val">0</span> m²</p>
-    <div id="btn-group">
-      <button id="btn-start">Iniciar Recorrido</button>
-      <button id="btn-stop" disabled>Terminar / Calcular</button>
+  <!-- HEADER FLOTANTE (ESTADO Y TOTALES) -->
+  <div id="hud-header" class="glass-panel">
+    <div class="player-badge">
+      <span id="player-dot" class="color-dot"></span>
+      <span id="hud-player-name">Cargando...</span>
+    </div>
+    <div class="stats-badge">
+      <span class="stat-label">TERRITORIO</span>
+      <span class="stat-value"><span id="area-val">0</span> m²</span>
     </div>
   </div>
+
+  <!-- CONTROLES PRINCIPALES (BOTONES INFERIORES) -->
+  <div id="hud-controls">
+    <button id="btn-start" class="btn-action btn-start">
+      <span class="btn-icon">▶</span>
+      <span>Iniciar Recorrido</span>
+    </button>
+    <button id="btn-stop" class="btn-action btn-stop" disabled>
+      <span class="btn-icon">⏹</span>
+      <span>Terminar / Conquistar</span>
+    </button>
+  </div>
+
+  <!-- TABLA DE POSICIONES DESPLEGABLE (BOTTOM SHEET) -->
+  <div id="bottom-sheet" class="glass-panel collapsed">
+    <div id="sheet-header" class="sheet-handle">
+      <div class="handle-bar"></div>
+      <div class="sheet-title">
+        <span>🏆 TABLA DE POSICIONES</span>
+        <span id="sheet-toggle-icon">▲</span>
+      </div>
+    </div>
+    <div class="sheet-content">
+      <ul id="leaderboard-list">
+        <li class="empty-msg">Cargando posiciones...</li>
+      </ul>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
