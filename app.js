@@ -3,6 +3,8 @@
 // ==========================================
 const SUPABASE_URL = 'https://qmjdiptmzqvkrwdiyqdt.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_kdRPXiaT3yUxwav0JYjrBQ_oDkO_QEk';
+const rankingJugadores = {}; 
+// Estructura: { 'Apodo': { area: 1500, color: '#00FF66' } }
 
 let supabaseClient = null;
 if (typeof supabase !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.includes('TU_PROYECTO')) {
@@ -93,13 +95,20 @@ function iniciarMultijugador() {
   });
 
   // Escuchar áreas conquistadas remotas
-  canalJuego.on('broadcast', { event: 'area_conquistada' }, payload => {
-    const data = payload.payload;
-    if (data.id === miJugadorId) return;
+canalJuego.on('broadcast', { event: 'territorio_conquistado' }, ({ payload }) => {
+    // Actualizar o insertar el total de m² del otro jugador
+    rankingJugadores[payload.jugador] = {
+      area: payload.areaTotal,
+      color: payload.color
+    };
 
-    L.geoJSON(data.poligono, {
-      style: { color: data.color, fillColor: data.color, fillOpacity: 0.4, weight: 2 }
-    }).addTo(map).bindTooltip(`Área de ${data.nombre}`);
+    // Dibujar el nuevo polígono en el mapa (si aún no está dibujado)
+    L.geoJSON(payload.poligono, {
+      style: { color: payload.color, fillColor: payload.color, fillOpacity: 0.4 }
+    }).addTo(map);
+
+    // Refrescar el Leaderboard
+    actualizarTablaPosiciones();
   });
 
   canalJuego.subscribe();
@@ -135,6 +144,28 @@ btnStop.addEventListener('click', () => {
   btnStop.disabled = true;
 
   calcularYConquistarArea();
+const areaConquistada = turf.area(poligonoGeoJSON); 
+
+// Sumar al total propio
+if (!rankingJugadores[miApodo]) {
+  rankingJugadores[miApodo] = { area: 0, color: miColor };
+}
+rankingJugadores[miApodo].area += areaConquistada;
+
+// Actualizar UI propia
+actualizarTablaPosiciones();
+
+// Transmitir evento a los demás jugadores vía Supabase Realtime
+canalJuego.send({
+  type: 'broadcast',
+  event: 'territorio_conquistado',
+  payload: {
+    jugador: miApodo,
+    color: miColor,
+    areaTotal: rankingJugadores[miApodo].area,
+    poligono: poligonoGeoJSON
+  }
+});
 });
 
 function actualizarPosicion(pos) {
@@ -208,4 +239,37 @@ function calcularYConquistarArea() {
   }
 
   lineaRastro.setLatLngs([]);
+}
+
+function actualizarTablaPosiciones() {
+  const listaUI = document.getElementById('leaderboard-list');
+  if (!listaUI) return;
+
+  // Convertir objeto a Array y ordenar de mayor a menor m²
+  const rankingOrdenado = Object.entries(rankingJugadores)
+    .map(([nombre, datos]) => ({ nombre, ...datos }))
+    .sort((a, b) => b.area - a.area);
+
+  if (rankingOrdenado.length === 0) {
+    listaUI.innerHTML = '<li class="empty-msg">Sin territorios aún</li>';
+    return;
+  }
+
+  listaUI.innerHTML = rankingOrdenado.map((jugador, index) => {
+    // Formatear área (m² o km² si supera los 10,000 m²)
+    let areaTexto = jugador.area >= 10000 
+      ? (jugador.area / 1000000).toFixed(2) + ' km²' 
+      : Math.round(jugador.area) + ' m²';
+
+    return `
+      <li>
+        <div class="player-info">
+          <span>#${index + 1}</span>
+          <span class="color-indicator" style="background-color: ${jugador.color}"></span>
+          <strong>${jugador.nombre}</strong>
+        </div>
+        <span class="area-val">${areaTexto}</span>
+      </li>
+    `;
+  }).join('');
 }
